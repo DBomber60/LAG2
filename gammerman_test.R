@@ -1,5 +1,7 @@
+rm(list=ls())
 source('gamerman_sample.R')
 source('drivers.sampling.R')
+source('drivers.warmstart.R')
 source('rewens.R')
 
 
@@ -39,7 +41,6 @@ apply(R,2,sd)
 exp(apply(R,2,mean))
 
 # ok, now for the survival part ...
-
 # first, let's sample from the model
 
 set.seed(1)
@@ -61,14 +62,23 @@ X = makeDesign(C, cn, alpha, beta = beta_true)
 
 sampled = lag_sample(G=g, k, X, cn=cn, nt=nt, theta=theta, gamma = gamma, beta = beta_true, alpha = alpha) 
 
-# estimate initial graph
-M = t(sampled$D) %*% sampled$D
-ghat = g_estimate(sampled$D, M=M, nt = nt, pval = .001)
-kshat = kestimate(ghat$graph, sampled$D, cn = ghat$cn)
-
 # let's estimate alpha, beta assuming we know S/ k
+NRfit(sampled$S_tilde, X, k)$coef
+
+# make sure diag(PI) = t(X) %*% exp(XB) / g
+cj = t(apply(X,1, function(x) ifelse(x>0,1,0)))
+CO = t(cj) %*% cj # co-occurence matrix 
+
+# original estimate
+NRfit2(sampled$S_tilde, X, k)$coef
+
+# now sample
 
 
+diag(make_pi(c(alpha, beta_true), X, cj, CO))
+
+g = sum(exp(X %*% c(alpha, beta_true)))
+array( (t(X) %*% exp(X %*% c(alpha, beta_true)))/g )
 
 
 

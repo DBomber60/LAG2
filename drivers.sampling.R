@@ -1,12 +1,6 @@
-#library(arm)
-#library(rlist)
 library(igraph)
 
-ilogit <- function (x) 1 / (1 + exp(-x)) # plogis
-
-
-############### LAG_SAMPLE: Obtain one sample from model ####################
-
+############### LAG_SAMPLE: Obtain sample from model ####################
 
 # input - design matrix (X), number of cliques to sample (k), cardinality coefficients (alpha), popularity coefficients (beta)
 # output - single transaction - non-overlapping cliques sample with weight proportional to X %*% (alpha,beta)
@@ -18,11 +12,9 @@ sample_transaction = function(X, k, alpha, beta, cn) {
   return(list(s = s, transaction = s %*% X))
 }
 
-
 # sample an association graph 
 # input: n, gamma
 # output: G, clique design matrix based on sampled G
-
 g_sample = function(n, gamma) {
   edges <- c()
   for (i in 1:(n - 1)) { #    for each
