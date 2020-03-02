@@ -33,6 +33,7 @@ gamerman_mcmc = function(Y, X, beta.init, nIter, b, b1, b1inv, b2) {
   
   # hold results in Res matrix
   p = dim(X)[2]
+  print(p)
   Res = array(0, dim = c(nIter,p))
 
   for (i in 1:nIter) {
