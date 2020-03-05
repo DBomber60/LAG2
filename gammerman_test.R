@@ -15,14 +15,14 @@ X = matrix(rnorm(n*p), nrow=n, ncol=p)
 beta.true = c(1,2)
 Y = rpois(n, lambda = exp(X %*% beta.true))
 beta.curr = glm(Y~X-1, family = poisson)$coef
-R = gamerman_mcmc(Y, X, beta.curr, nIter = 1000, b = exp, b1 = exp, b1inv = log, b2 = exp)
+Res = gamerman_mcmc(Y, X, beta.curr, nIter = 1000, b = exp, b1 = exp, b1inv = log, b2 = exp)
 
 apply(Res,2,sd)
 apply(Res,2,mean)
 summary(glm(Y~X-1, family = poisson))
 
 
-# 2. Ewens - good 
+# 2. Ewens - NOT good 
 
 source('rewens.R')
 
@@ -35,10 +35,9 @@ b  = function(theta) {sum(log(exp(theta)+seq(0,n-1)))}
 b1 = function(theta) {sum(exp(theta)/(seq(0,n-1)+exp(theta)))}
 b2 = function(theta) {sum(seq(1,n-1)*exp(theta)/((seq(1,n-1)+exp(theta))^2))}
 
-
-R = gamerman_mcmc(Y, X, beta.init = 1, nIter = 1000, b = b, b1 = b1, b1inv = log, b2 = b2)
-apply(R,2,sd)
-exp(apply(R,2,mean))
+R = gamerman_mcmc(Y, X, beta.init = -1, nIter = 1000, b = b, b1 = b1, b1inv = log, b2 = b2)
+apply(exp(R),2,sd)
+apply(exp(R),2,mean)
 
 # ok, now for the survival part ...
 # first, let's sample from the model
@@ -63,30 +62,18 @@ X = makeDesign(C, cn, alpha, beta = beta_true)
 sampled = lag_sample(G=g, k, X, cn=cn, nt=nt, theta=theta, gamma = gamma, beta = beta_true, alpha = alpha) 
 
 # let's estimate alpha, beta assuming we know S/ k
-NRfit(sampled$S_tilde, X, k)$coef
-
-# make sure diag(PI) = t(X) %*% exp(XB) / g
-cj = t(apply(X,1, function(x) ifelse(x>0,1,0)))
-CO = t(cj) %*% cj # co-occurence matrix 
-
-# original estimate
 NRfit2(sampled$S_tilde, X, k)$coef
 
-# now sample
+
+# quick check
+colSums(sampled$S_tilde)
+colSums(sampled$S %*% X)
 
 
 diag(make_pi(c(alpha, beta_true), X, cj, CO))
 
 g = sum(exp(X %*% c(alpha, beta_true)))
 array( (t(X) %*% exp(X %*% c(alpha, beta_true)))/g )
-
-
-
-
-
-
-
-
 
 
 
