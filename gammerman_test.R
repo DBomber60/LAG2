@@ -69,6 +69,7 @@ NRfit2(sampled$S_tilde, X, k)$coef
 colSums(sampled$S_tilde)
 colSums(sampled$S %*% X)
 
+getparamsCOX(sampled$S, sampled$k, X, beta.curr = rnorm(dim(X)[2]))
 
 diag(make_pi(c(alpha, beta_true), X, cj, CO))
 

@@ -17,14 +17,16 @@ getparams = function (Y, X, b, b1, b1inv, b2, beta.curr) {
 }
 
 # input: partition matrix X; design matrix X
-getparamsCOX = function (S, X, beta.curr) {
-  eta = X %*% beta.curr
-  mu = b1(eta)
-  W <- sapply(eta, b2) # b''(theta) = V(mu)
-  z <- eta + (Y - mu) / W # working response
-  wlm <- lm(z ~ X - 1, weights = W) # weighted least squares
-  beta <- coef(wlm)
-  return(list(mean = beta, sigma = summary(wlm)$cov.unscaled))
+getparamsCOX = function (S, k, X, beta.curr) {
+  e_eta = as.numeric(exp(X %*% beta.curr))
+  g = sum(e_eta)
+  W = sum(k)*(diag(e_eta) * g - e_eta %*% t(e_eta) )/g^2 + diag(.001, nrow = dim(X)[1])
+  z = log(e_eta) + solve(W) %*% (colSums(S) - sum(k) * e_eta/g)
+  print(z)
+  #print (solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% z)
+  #wlm <- lm(z ~ X - 1, weights = W) # weighted least squares
+  #beta <- coef(wlm)
+  #return(list(mean = beta, sigma = summary(wlm)$cov.unscaled))
 }
 
 
