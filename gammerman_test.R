@@ -61,7 +61,7 @@ X = makeDesign(C, cn, alpha, beta = beta_true)
 
 sampled = lag_sample(G=g, k, X, cn=cn, nt=nt, theta=theta, gamma = gamma, beta = beta_true, alpha = alpha) 
 
-# let's estimate alpha, beta assuming we know S/ k
+# let's estimate alpha, beta assuming we know S/ k - use these as starting values
 NRfit2(sampled$S_tilde, X, k)$coef
 
 

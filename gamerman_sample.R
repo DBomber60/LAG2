@@ -22,13 +22,10 @@ getparamsCOX = function (S, k, X, beta.curr) {
   g = sum(e_eta)
   W = sum(k)*(diag(e_eta) * g - e_eta %*% t(e_eta) )/g^2 + diag(.001, nrow = dim(X)[1])
   z = log(e_eta) + solve(W) %*% (colSums(S) - sum(k) * e_eta/g)
-  print(z)
-  #print (solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% z)
-  #wlm <- lm(z ~ X - 1, weights = W) # weighted least squares
-  #beta <- coef(wlm)
-  #return(list(mean = beta, sigma = summary(wlm)$cov.unscaled))
+  sigma_mat = solve(t(X) %*% W %*% X)
+  mu_vector = (sigma_mat %*% t(X) %*% W %*% z)
+  return(list(mu_vector = mu_vector, sigma_mat = sigma_mat))
 }
-
 
 
 # log-likelihood for a sample from an exponential family in which theta = eta
@@ -38,8 +35,16 @@ logpi_beta = function(Y, X, b, beta) {
   return(sum(Y * eta - b(eta)))
 }
 
+# log likelihood for cox model - given partition matrix/ k-vector/ beta vector/ clique set
 
-gamerman_mcmc = function(Y, X, beta.init, nIter, b, b1, b1inv, b2) {
+logpi_surv = function(Y, X, b, beta) {
+  eta = X %*% beta
+  return(sum(Y * eta - b(eta)))
+}
+
+
+
+gamerman_mcmc = function(Y, X, beta.init, nIter, b, b1, b1inv, b2, surv = F) {
   
   # initialize
   beta.curr = beta.init
