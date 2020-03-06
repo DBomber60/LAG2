@@ -17,14 +17,14 @@ getparams = function (Y, X, b, b1, b1inv, b2, beta.curr) {
 }
 
 # input: partition matrix X; design matrix X
-getparamsCOX = function (S, k, X, beta.curr) {
+getparamsCOX = function (S, X, beta.curr) {
   e_eta = as.numeric(exp(X %*% beta.curr))
   g = sum(e_eta)
-  W = sum(k)*(diag(e_eta) * g - e_eta %*% t(e_eta) )/g^2 + diag(.001, nrow = dim(X)[1])
-  z = log(e_eta) + solve(W) %*% (colSums(S) - sum(k) * e_eta/g)
+  W = sum(S)*(diag(e_eta) * g - e_eta %*% t(e_eta) )/g^2 + diag(.001, nrow = dim(X)[1])
+  z = log(e_eta) + solve(W) %*% (colSums(S) - sum(S) * e_eta/g)
   sigma_mat = solve(t(X) %*% W %*% X)
   mu_vector = (sigma_mat %*% t(X) %*% W %*% z)
-  return(list(mu_vector = mu_vector, sigma_mat = sigma_mat))
+  return(list(mean = mu_vector, sigma = sigma_mat))
 }
 
 
@@ -35,21 +35,29 @@ logpi_beta = function(Y, X, b, beta) {
   return(sum(Y * eta - b(eta)))
 }
 
-# log likelihood for cox model - given partition matrix/ k-vector/ beta vector/ clique set
+# log likelihood for cox model - given partition matrix/ k-vector/ beta vector/ design matrix
 
-logpi_surv = function(Y, X, b, beta) {
-  eta = X %*% beta
-  return(sum(Y * eta - b(eta)))
+logpi_surv = function(S, X, beta) {
+  # S_tilde = S %*% X
+  g = log(sum(X %*% beta))
+  #print(g)
+  return ( sum (S %*% X %*% beta - sum(S) * g ) )
 }
 
+# if survival, then Y is the partition matrix S
 
-
-gamerman_mcmc = function(Y, X, beta.init, nIter, b, b1, b1inv, b2, surv = F) {
+gamerman_mcmc = function(Y, X, beta.init, nIter = 1000, b = 1, b1 = 1, b1inv = 1, b2 = 1, surv = F) {
   
   # initialize
-  beta.curr = beta.init
-  params.curr = getparams(Y, X, b, b1, b1inv, b2, beta.curr)
-  logpi.curr = logpi_beta(Y, X, b, beta.curr)
+  beta.curr = as.numeric(beta.init)
+  
+  if (surv == T) {
+    params.curr = getparamsCOX(Y, X, beta.curr)
+    logpi.curr = logpi_surv(Y, X, beta.curr)
+  } else {
+    params.curr = getparams(Y, X, b, b1, b1inv, b2, beta.curr)
+    logpi.curr = logpi_beta(Y, X, b, beta.curr)
+  }
   
   # hold results in Res matrix
   p = dim(X)[2]
@@ -59,18 +67,27 @@ gamerman_mcmc = function(Y, X, beta.init, nIter, b, b1, b1inv, b2, surv = F) {
     
     # now sample a new beta
     beta.prop = as.numeric(params.curr$mean + t(chol(params.curr$sigma)) %*% rnorm(p))
-    #print(beta.prop)
-    params.prop = getparams(Y, X, b, b1, b1inv, b2, beta.prop)
-    #print(params.prop)
+    print(beta.prop)
+
+    # get params of proposal distribution
     
-    # log(p(beta^new))
-    logpi.prop = logpi_beta(Y, X, b, beta.prop)
-
+    if (surv == T) {
+      params.prop = getparamsCOX(Y, X, beta.prop)
+      print(sum (X %*% beta.prop) ) # maybe just reject if sum(X %*% beta.prop) < 0 ?
+      logpi.prop = logpi_surv(Y, X, beta.prop)
+      #print(logpi.prop)
+    } else {
+      params.prop = getparams(Y, X, b, b1, b1inv, b2, beta.prop)
+      logpi.prop = logpi_beta(Y, X, b, beta.prop)
+    }
+    
     # exp(log(q(beta^new, beta^old)) - log(q(beta^old, beta^new)))
-    qc2 = exp(dmvnorm(beta.curr, mean = params.prop$mean, sigma = params.prop$sigma, log = T) - 
-      dmvnorm(beta.prop, mean = params.curr$mean, sigma = params.curr$sigma, log = T))
+    #qc2 = exp(dmvnorm(beta.curr, mean = params.prop$mean, sigma = params.prop$sigma, log = T) - 
+    #  dmvnorm(beta.prop, mean = params.curr$mean, sigma = params.curr$sigma, log = T))
+    
 
-    acc = exp( logpi.prop - logpi.curr ) * qc2
+    acc = exp( logpi.prop - logpi.curr ) #* qc2
+    
     if (runif(1) < acc) {
       #set beta to the proposed beta
       beta.curr = beta.prop
