@@ -65,7 +65,7 @@ sampled = lag_sample(G=g, k, X, cn=cn, nt=nt, theta=theta, gamma = gamma, beta =
 beta_init = NRfit2(sampled$S_tilde, X, k)$coef
 
 
-gamerman_mcmc(Y = sampled$S, X, beta.init = beta_init, nIter = 2, surv = T)
+gamerman_mcmc(Y = sampled$S, X, beta.init = beta_init, nIter = 1000, surv = T)
 
 getparamsCOX(sampled$S, sampled$k, X, beta.curr = rnorm(dim(X)[2]))
 

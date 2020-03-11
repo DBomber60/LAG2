@@ -17,13 +17,14 @@ getparams = function (Y, X, b, b1, b1inv, b2, beta.curr) {
 }
 
 # input: partition matrix X; design matrix X
-getparamsCOX = function (S, X, beta.curr) {
+getparamsCOX = function (S, X, beta.curr, c) {
+  p = dim(X)[2]
   e_eta = as.numeric(exp(X %*% beta.curr))
   g = sum(e_eta)
   W = sum(S)*(diag(e_eta) * g - e_eta %*% t(e_eta) )/g^2 + diag(.001, nrow = dim(X)[1])
   z = log(e_eta) + solve(W) %*% (colSums(S) - sum(S) * e_eta/g)
-  sigma_mat = solve(t(X) %*% W %*% X)
-  mu_vector = (sigma_mat %*% t(X) %*% W %*% z)
+  sigma_mat = solve( 1/c * diag(p) + t(X) %*% W %*% X)
+  mu_vector = sigma_mat %*% (t(X) %*% W %*% z)
   return(list(mean = mu_vector, sigma = sigma_mat))
 }
 
@@ -46,13 +47,13 @@ logpi_surv = function(S, X, beta) {
 
 # if survival, then Y is the partition matrix S
 
-gamerman_mcmc = function(Y, X, beta.init, nIter = 1000, b = 1, b1 = 1, b1inv = 1, b2 = 1, surv = F) {
+gamerman_mcmc = function(Y, X, beta.init, nIter = 1000, b = 1, b1 = 1, b1inv = 1, b2 = 1, surv = F, c=1) {
   
   # initialize
   beta.curr = as.numeric(beta.init)
   
   if (surv == T) {
-    params.curr = getparamsCOX(Y, X, beta.curr)
+    params.curr = getparamsCOX(Y, X, beta.curr, c)
     logpi.curr = logpi_surv(Y, X, beta.curr)
   } else {
     params.curr = getparams(Y, X, b, b1, b1inv, b2, beta.curr)
@@ -72,7 +73,7 @@ gamerman_mcmc = function(Y, X, beta.init, nIter = 1000, b = 1, b1 = 1, b1inv = 1
     # get params of proposal distribution
     
     if (surv == T) {
-      params.prop = getparamsCOX(Y, X, beta.prop)
+      params.prop = getparamsCOX(Y, X, beta.prop, c)
       print(sum (X %*% beta.prop) ) # maybe just reject if sum(X %*% beta.prop) < 0 ?
       logpi.prop = logpi_surv(Y, X, beta.prop)
       #print(logpi.prop)
